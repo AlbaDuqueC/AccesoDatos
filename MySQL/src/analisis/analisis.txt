@@ -1,0 +1,9 @@
+class AccesoBD
+
+	+ conectar()
+	+ crearTablas()
+	+ insertar()
+	+ listar()
+	+ modificar()
+	+ borrar()
+	+ EliminarTablas()
