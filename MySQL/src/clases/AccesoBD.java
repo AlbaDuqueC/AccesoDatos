@@ -149,7 +149,7 @@ public class AccesoBD {
 
 	public static void listar(String tabla) throws SQLException {
 
-		String lita = "SELECT * FROM " + tabla ;
+		String lita = "SELECT * FROM " + tabla;
 
 		ResultSet rs = st.executeQuery(lita);
 
@@ -157,13 +157,77 @@ public class AccesoBD {
 
 	}
 
-	public static void listarWhere(String tabla, String atributo, String valor) throws SQLException {
+	public static void listarWhere(String tabla, String valor) throws SQLException {
 
-		String lita = "SELECT * FROM " + tabla + "WHERE " + atributo + "=" + valor;
+		String lista = "SELECT * FROM " + tabla + "WHERE " + "LIKE %" + valor + "%";
 
-		ResultSet rs = st.executeQuery(lita);
+		ResultSet rs = st.executeQuery(lista);
 
-		System.out.println(rs);
+		
+
+	}
+
+	// MODIFICAR
+
+	public static boolean modificar(String tabla, String columna, String dato, String filtro) throws SQLException {
+
+		boolean modifico = true;
+
+		String start = "START TRANSACTION;";
+
+		String SelcTabla = "SELECT * FROM " + tabla + " WHERE " + filtro;
+
+		String modifica = " UPDATE  " + tabla + " SET " + columna + " = " + dato + " WHERE " + filtro;
+
+		ResultSet rs;
+
+		if (st.execute(start)) {
+
+			rs = st.executeQuery(SelcTabla);
+
+			System.out.println(rs);
+
+			if (st.execute(modifica)) {
+
+				rs = st.executeQuery(SelcTabla);
+
+				System.out.println(rs);
+
+			} else {
+				modifico = false;
+			}
+
+		} else {
+			modifico = false;
+		}
+
+		return modifico;
+
+	}
+
+	public static boolean StartModificar(boolean start) throws SQLException {
+
+		boolean modifico = true;
+
+		String stm;
+
+		if (start) {
+
+			stm = "COMMIT";
+
+		} else {
+
+			stm = "ROLLBACK";
+
+		}
+
+		if (!st.execute(stm)) {
+
+			modifico = false;
+
+		}
+
+		return modifico;
 
 	}
 
@@ -188,6 +252,12 @@ public class AccesoBD {
 
 		return tablaMatricula;
 
+	}
+	
+	private static void imprimirProfes(ResultSet rs) {
+	
+		
+		
 	}
 
 }
