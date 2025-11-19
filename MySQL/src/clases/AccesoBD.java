@@ -1,6 +1,8 @@
 package clases;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -42,6 +44,11 @@ public class AccesoBD {
 
 	// CREATE TABLE
 
+	/**
+	 * Crea todas las tablas necesarias en la base de datos
+	 * @return debuelve un boolean dependiendo de si se han podido hacer las tablas correctamente o no
+	 * @throws SQLException
+	 */
 	public static boolean createTableTodas() throws SQLException {
 
 		String creacion = tablaProfes() + tablaAlumnado() + tablaMatricula();
@@ -50,6 +57,12 @@ public class AccesoBD {
 
 	}
 
+	/**
+	 * Crea solo la tabla que introduzcas por parametro
+	 * @param nombre Nombre de la tabla que quieras crear
+	 * @return devuelve un numero dependiendo de lo que sudaceda
+	 * @throws SQLException
+	 */
 	public static int createTable(String nombre) throws SQLException {
 
 		int crear = 0;
@@ -93,57 +106,75 @@ public class AccesoBD {
 
 	// INSERTAR
 
-	public static boolean insertarProfes(int id, String nombre, String apellido, String FechaNacimiento, int Antiguedad)
+	/**
+	 * Inserta los datos de un profesor
+	 * @param nombre Nombre del profesor
+	 * @param apellido Apellido del profesor
+	 * @param FechaNacimiento Fecha de nacimiento del profesor
+	 * @param Antiguedad Numeoro de años que lleva dando clase (antiguedad )
+	 * @return devuelve un boolean dependiendo de si se ha podido inertar bien
+	 * @throws SQLException
+	 */
+	public static void insertarProfes( String nombre, String apellido, String FechaNacimiento, int Antiguedad)
 			throws SQLException {
 
-		boolean inserta = true;
+		try {
+            PreparedStatement ps = con.prepareStatement(
+                "INSERT INTO Profesores(Nombre,Apellidos,FechaNacimiento,Antiguedad) VALUES (?,?,?,?)"
+            );
+            ps.setString(1, nombre);
+            ps.setString(2, apellido);
+            ps.setString(3, FechaNacimiento);
+            ps.setInt(4, Antiguedad);
+            ps.executeUpdate();
+            System.out.println("Profesor insertado.");
+        } catch (SQLException e) { System.out.println(e.getMessage()); }
+    }
 
-		String insertarProfe = "INSERT INTO Profesores ( '" + id + "' , '" + nombre + "' , '" + apellido + "' , '"
-				+ FechaNacimiento + "' , '" + Antiguedad + "' )";
+	/**
+	 * Inserta los datos introducidos por parametro de un alumno para guardarlo en la base de datos
+	 * @param nombre Nombre del Alumno
+	 * @param apellido Apellido del Alumno
+	 * @param fechaNacimiento Fecha de nacimiento del alumno
+	 * @return Devuelve un boolean dependiendo si se ha podido hacer la operacion en la base de datos o no
+	 * @throws SQLException
+	 */
+	public static void insertarAlumno( String nombre, String apellido, String fechaNacimiento) throws SQLException {
 
-		if (!st.execute(insertarProfe)) {
+		PreparedStatement ps = con.prepareStatement(
+	            "INSERT INTO Alumnado(Nombre,Apellidos,FechaNacimiento) VALUES (?,?,?)"
+	        );
+	        ps.setString(1, nombre);
+	        ps.setString(2, apellido);
+	        ps.setString(3, fechaNacimiento);
+	        ps.executeUpdate();
+	        System.out.println("Alumno insertado.");
+	    }
 
-			inserta = false;
 
-		}
-
-		return inserta;
-
-	}
-
-	public static boolean insertarAlumno(int id, String nombre, String apellido, String fecha) throws SQLException {
-
-		boolean inserta = true;
-
-		String insertarAlumno = "INSERT INTO Alumnado ( '" + id + "' , '" + nombre + "' , '" + apellido + "' , '"
-				+ fecha + "' )";
-
-		if (!st.execute(insertarAlumno)) {
-
-			inserta = false;
-
-		}
-
-		return inserta;
-	}
-
-	public static boolean insertarMatricula(int id, int idProfesor, int idAlumno, String asignatura, int curso)
+	/**
+	 * Inserta los datos introducidos por parametro de la Matricula
+	 * @param id ID de la Matricula
+	 * @param idProfesor ID del profesor
+	 * @param idAlumno ID del alumno 
+	 * @param asignatura
+	 * @param curso
+	 * @return
+	 * @throws SQLException
+	 */
+	public static void insertarMatricula( int idProfesor, int idAlumno, String asignatura, int curso)
 			throws SQLException {
 
-		boolean inserta = true;
-
-		String insertarAlumno = "INSERT INTO Matricula ( '" + id + "' , '" + idProfesor + "' , '" + idAlumno + "' , '"
-				+ asignatura + "' , '" + curso + "' )";
-
-		if (!st.execute(insertarAlumno)) {
-
-			inserta = false;
-
-		}
-
-		return inserta;
-
-	}
+		PreparedStatement ps = con.prepareStatement(
+	            "INSERT INTO Matricula(idProfesorado,idAlumno,Asignatura,Curso) VALUES (?,?,?,?)"
+	        );
+	        ps.setInt(1, idProfesor);
+	        ps.setInt(2, idAlumno);
+	        ps.setString(3, asignatura);
+	        ps.setInt(4, curso);
+	        ps.executeUpdate();
+	        System.out.println("Matrícula insertada.");
+	    }
 
 	// LISTAR
 
@@ -235,21 +266,34 @@ public class AccesoBD {
 
 	private static String tablaProfes() {
 
-		String tablaProfes = "CREATE TABLE Profesores (idProfesor int Primary Key, Nombre varchar(45), Apellidos varchar(45), FechaNacimiento date, Antiguedad int);";
-
+		String tablaProfes = "CREATE TABLE IF NOT EXISTS Profesores (" +
+                "idProfesor INT AUTO_INCREMENT PRIMARY KEY," +
+                "Nombre VARCHAR(45)," +
+                "Apellidos VARCHAR(45)," +
+                "FechaNacimiento DATE," +
+                "Antiguedad INT)";
 		return tablaProfes;
 	}
 
 	private static String tablaAlumnado() {
-		String tablaAlumnado = "CREATE TABLE Alumnado (idAlumno int Primary key, Nombre varchar(45), Apellidos varchar(45), FechaNacimiento date)";
-
+		String tablaAlumnado = "CREATE TABLE IF NOT EXISTS Alumnado (" +
+                "idAlumno INT AUTO_INCREMENT PRIMARY KEY," +
+                "Nombre VARCHAR(45)," +
+                "Apellidos VARCHAR(45)," +
+                "FechaNacimiento DATE)";
 		return tablaAlumnado;
 	}
 
 	private static String tablaMatricula() {
 
-		String tablaMatricula = "CREATE TABLE Matricula (idMatricula int Primary Key, idProfesorado int, idAlumnado int, Asignatura varchar(45), Curso int, Foreing key (idProfesorado) references Profesores(idProdesor),Foreing key (idAlumnado) references Alumnado (idAlumnado) ) ";
-
+		String tablaMatricula ="CREATE TABLE IF NOT EXISTS Matricula (" +
+                "idMatricula INT AUTO_INCREMENT PRIMARY KEY," +
+                "idProfesorado INT," +
+                "idAlumno INT," +
+                "Asignatura VARCHAR(45)," +
+                "Curso INT," +
+                "FOREIGN KEY(idProfesorado) REFERENCES Profesores(idProfesor)," +
+                "FOREIGN KEY(idAlumno) REFERENCES Alumnado(idAlumno))";
 		return tablaMatricula;
 
 	}
@@ -259,5 +303,6 @@ public class AccesoBD {
 		
 		
 	}
+	
 
 }
