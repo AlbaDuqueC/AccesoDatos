@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -46,19 +47,31 @@ public class AccesoBD {
 
 	/**
 	 * Crea todas las tablas necesarias en la base de datos
-	 * @return debuelve un boolean dependiendo de si se han podido hacer las tablas correctamente o no
+	 * 
+	 * @return debuelve un boolean dependiendo de si se han podido hacer las tablas
+	 *         correctamente o no
 	 * @throws SQLException
 	 */
 	public static boolean createTableTodas() throws SQLException {
 
+		boolean crear = false;
+
 		String creacion = tablaProfes() + tablaAlumnado() + tablaMatricula();
 
-		return st.execute(creacion);
+		iniciarTransaccion();
+
+		if (st.execute(creacion)) {
+			confirmar();
+			crear = true;
+		}
+
+		return crear;
 
 	}
 
 	/**
 	 * Crea solo la tabla que introduzcas por parametro
+	 * 
 	 * @param nombre Nombre de la tabla que quieras crear
 	 * @return devuelve un numero dependiendo de lo que sudaceda
 	 * @throws SQLException
@@ -69,11 +82,15 @@ public class AccesoBD {
 
 		String creacion;
 
+		iniciarTransaccion();
+
 		switch (nombre.toLowerCase()) {
 		case "profesores" -> {
 
 			if (!st.execute(tablaProfes())) {
 				crear = -1;
+			}else {
+				confirmar();
 			}
 
 		}
@@ -81,6 +98,8 @@ public class AccesoBD {
 
 			if (!st.execute(tablaAlumnado())) {
 				crear = -1;
+			}else {
+				confirmar();
 			}
 
 		}
@@ -91,6 +110,8 @@ public class AccesoBD {
 
 			if (!st.execute(tablaMatricula())) {
 				crear = -1;
+			}else {
+				confirmar();
 			}
 
 		}
@@ -108,201 +129,365 @@ public class AccesoBD {
 
 	/**
 	 * Inserta los datos de un profesor
-	 * @param nombre Nombre del profesor
-	 * @param apellido Apellido del profesor
+	 * 
+	 * @param nombre          Nombre del profesor
+	 * @param apellido        Apellido del profesor
 	 * @param FechaNacimiento Fecha de nacimiento del profesor
-	 * @param Antiguedad Numeoro de años que lleva dando clase (antiguedad )
+	 * @param Antiguedad      Numeoro de años que lleva dando clase (antiguedad )
 	 * @return devuelve un boolean dependiendo de si se ha podido inertar bien
 	 * @throws SQLException
 	 */
-	public static void insertarProfes( String nombre, String apellido, String FechaNacimiento, int Antiguedad)
+	public static void insertarProfes(String nombre, String apellido, String FechaNacimiento, int Antiguedad)
 			throws SQLException {
 
-		try {
-            PreparedStatement ps = con.prepareStatement(
-                "INSERT INTO Profesores(Nombre,Apellidos,FechaNacimiento,Antiguedad) VALUES (?,?,?,?)"
-            );
-            ps.setString(1, nombre);
-            ps.setString(2, apellido);
-            ps.setString(3, FechaNacimiento);
-            ps.setInt(4, Antiguedad);
-            ps.executeUpdate();
-            System.out.println("Profesor insertado.");
-        } catch (SQLException e) { System.out.println(e.getMessage()); }
-    }
-
-	/**
-	 * Inserta los datos introducidos por parametro de un alumno para guardarlo en la base de datos
-	 * @param nombre Nombre del Alumno
-	 * @param apellido Apellido del Alumno
-	 * @param fechaNacimiento Fecha de nacimiento del alumno
-	 * @return Devuelve un boolean dependiendo si se ha podido hacer la operacion en la base de datos o no
-	 * @throws SQLException
-	 */
-	public static void insertarAlumno( String nombre, String apellido, String fechaNacimiento) throws SQLException {
+		iniciarTransaccion();
 
 		PreparedStatement ps = con.prepareStatement(
-	            "INSERT INTO Alumnado(Nombre,Apellidos,FechaNacimiento) VALUES (?,?,?)"
-	        );
-	        ps.setString(1, nombre);
-	        ps.setString(2, apellido);
-	        ps.setString(3, fechaNacimiento);
-	        ps.executeUpdate();
-	        System.out.println("Alumno insertado.");
-	    }
+				"INSERT INTO Profesores(Nombre,Apellidos,FechaNacimiento,Antiguedad) VALUES (?,?,?,?)");
+		ps.setString(1, nombre);
+		ps.setString(2, apellido);
+		ps.setString(3, FechaNacimiento);
+		ps.setInt(4, Antiguedad);
+		ps.executeUpdate();
+		
+		confirmar();
+		
+		System.out.println("Profesor insertado.");
+		
+		
+	}
 
+	/**
+	 * Inserta los datos introducidos por parametro de un alumno para guardarlo en
+	 * la base de datos
+	 * 
+	 * @param nombre          Nombre del Alumno
+	 * @param apellido        Apellido del Alumno
+	 * @param fechaNacimiento Fecha de nacimiento del alumno
+	 * @return Devuelve un boolean dependiendo si se ha podido hacer la operacion en
+	 *         la base de datos o no
+	 * @throws SQLException
+	 */
+	public static void insertarAlumno(String nombre, String apellido, String fechaNacimiento) throws SQLException {
+
+		iniciarTransaccion();
+		
+		PreparedStatement ps = con
+				.prepareStatement("INSERT INTO Alumnado(Nombre,Apellidos,FechaNacimiento) VALUES (?,?,?)");
+		ps.setString(1, nombre);
+		ps.setString(2, apellido);
+		ps.setString(3, fechaNacimiento);
+		ps.executeUpdate();
+		
+		confirmar();
+		
+		System.out.println("Alumno insertado.");
+	}
 
 	/**
 	 * Inserta los datos introducidos por parametro de la Matricula
-	 * @param id ID de la Matricula
+	 * 
+	 * @param id         ID de la Matricula
 	 * @param idProfesor ID del profesor
-	 * @param idAlumno ID del alumno 
-	 * @param asignatura
-	 * @param curso
-	 * @return
+	 * @param idAlumno   ID del alumno
+	 * @param asignatura Asignatura la cual queremos matricularnos
+	 * @param curso      Curso en el que se va a matricular
+	 * @return Devuelve un tipo entero
 	 * @throws SQLException
 	 */
-	public static void insertarMatricula( int idProfesor, int idAlumno, String asignatura, int curso)
+	public static int insertarMatricula(int idProfesor, int idAlumno, String asignatura, int curso)
 			throws SQLException {
 
-		PreparedStatement ps = con.prepareStatement(
-	            "INSERT INTO Matricula(idProfesorado,idAlumno,Asignatura,Curso) VALUES (?,?,?,?)"
-	        );
-	        ps.setInt(1, idProfesor);
-	        ps.setInt(2, idAlumno);
-	        ps.setString(3, asignatura);
-	        ps.setInt(4, curso);
-	        ps.executeUpdate();
-	        System.out.println("Matrícula insertada.");
-	    }
+		int insertar;
+		
+		iniciarTransaccion();
+		
+		PreparedStatement ps = con
+				.prepareStatement("INSERT INTO Matricula(idProfesorado,idAlumno,Asignatura,Curso) VALUES (?,?,?,?)");
+		ps.setInt(1, idProfesor);
+		ps.setInt(2, idAlumno);
+		ps.setString(3, asignatura);
+		ps.setInt(4, curso);
 
-	// LISTAR
+		insertar = ps.executeUpdate();
+		
+		confirmar();
 
-	public static void listar(String tabla) throws SQLException {
-
-		String lita = "SELECT * FROM " + tabla;
-
-		ResultSet rs = st.executeQuery(lita);
-
-		System.out.println(rs);
+		return insertar;
 
 	}
 
+	// LISTAR
+
+	/**
+	 * Imprime la tabla que pasa por parametro
+	 * 
+	 * @param tabla Nombre de la tabla que hay que imprimir
+	 * @throws SQLException
+	 */
+	public static void listar(String tabla) throws SQLException {
+
+		String sql = "SELECT * FROM " + tabla;
+		
+		iniciarTransaccion();
+		
+		Statement st = con.createStatement();
+		ResultSet rs = st.executeQuery(sql);
+
+		ResultSetMetaData meta = rs.getMetaData();
+		int columnas = meta.getColumnCount();
+
+		while (rs.next()) {
+			for (int i = 1; i <= columnas; i++) {
+				System.out.print(meta.getColumnName(i) + ": " + rs.getString(i) + " | ");
+			}
+			System.out.println();
+		}
+	}
+
+	/**
+	 * Lista dependiendo del valor que quieras buscar
+	 * 
+	 * @param tabla tabla que queramos imprimir
+	 * @param valor valor por el cual queramos filtrar
+	 * @throws SQLException
+	 */
 	public static void listarWhere(String tabla, String valor) throws SQLException {
 
 		String lista = "SELECT * FROM " + tabla + "WHERE " + "LIKE %" + valor + "%";
-
-		ResultSet rs = st.executeQuery(lista);
-
 		
+		iniciarTransaccion();
+
+		PreparedStatement ps = con.prepareStatement(lista);
+		ps.setString(1, valor);
+		ResultSet rs = ps.executeQuery();
+
+		ResultSetMetaData meta = rs.getMetaData();
+		int columnas = meta.getColumnCount();
+
+		while (rs.next()) {
+			for (int i = 1; i <= columnas; i++) {
+				System.out.print(meta.getColumnName(i) + ": " + rs.getString(i) + " | ");
+			}
+			System.out.println();
+		}
 
 	}
 
 	// MODIFICAR
 
-	public static boolean modificar(String tabla, String columna, String dato, String filtro) throws SQLException {
+	/**
+	 * La funcion modificar sirve para modificar un dato de una tabla en concretp,
+	 * la cual pasaremos por parametro
+	 * 
+	 * @param tabla          El nombre de la tabla que queramos modificar
+	 * @param campoFiltro    El nombre del campo para filtrar
+	 * @param valorFiltro    El valor que queramos filtrar
+	 * @param campoModificar El campo que queramos modificar
+	 * @param nuevoValor     El nuevo valor que queramos agregar
+	 * @throws SQLException
+	 */
+	public static void modificar(String tabla, String campoFiltro, String valorFiltro, String campoModificar,
+			String nuevoValor) throws SQLException {
+		
+		iniciarTransaccion();
 
-		boolean modifico = true;
+		con.setAutoCommit(false);
 
-		String start = "START TRANSACTION;";
+		String sqlUpdate = "UPDATE " + tabla + " SET " + campoModificar + " = ? WHERE " + campoFiltro + " = ?";
+		PreparedStatement ps = con.prepareStatement(sqlUpdate);
+		ps.setString(1, nuevoValor);
+		ps.setString(2, valorFiltro);
+		ps.executeUpdate();
 
-		String SelcTabla = "SELECT * FROM " + tabla + " WHERE " + filtro;
+		String sqlSelect = "SELECT * FROM " + tabla + " WHERE " + campoFiltro + " = ?";
+		PreparedStatement ps2 = con.prepareStatement(sqlSelect);
+		ps2.setString(1, valorFiltro);
+		ResultSet rs = ps2.executeQuery();
 
-		String modifica = " UPDATE  " + tabla + " SET " + columna + " = " + dato + " WHERE " + filtro;
+		System.out.println("\n REGISTROS MODIFICADOS (PENDIENTES DE CONFIRMAR) ");
 
-		ResultSet rs;
+		ResultSetMetaData meta = rs.getMetaData();
+		int columnas = meta.getColumnCount();
 
-		if (st.execute(start)) {
-
-			rs = st.executeQuery(SelcTabla);
-
-			System.out.println(rs);
-
-			if (st.execute(modifica)) {
-
-				rs = st.executeQuery(SelcTabla);
-
-				System.out.println(rs);
-
-			} else {
-				modifico = false;
+		while (rs.next()) {
+			for (int i = 1; i <= columnas; i++) {
+				System.out.print(meta.getColumnName(i) + ": " + rs.getString(i) + " | ");
 			}
-
-		} else {
-			modifico = false;
+			System.out.println();
 		}
-
-		return modifico;
 
 	}
 
-	public static boolean StartModificar(boolean start) throws SQLException {
-
-		boolean modifico = true;
+	/**
+	 * FUncion que confirma la modificacion hecha
+	 * 
+	 * @param start parametro que nos dira si quiere modificarlo o no
+	 * @return devuelve un boolean que nos dira si se ha podido yhacer la
+	 *         modificación o no
+	 * @throws SQLException
+	 */
+	public static void StartModificar(boolean start) throws SQLException {
 
 		String stm;
 
 		if (start) {
 
-			stm = "COMMIT";
+			confirmar();
 
 		} else {
 
-			stm = "ROLLBACK";
+			cancelar();
 
 		}
 
-		if (!st.execute(stm)) {
+	}
 
-			modifico = false;
+	// ELIMINAR
 
+	/**
+	 * Funcion que borra todos los datos de la tabla por completo
+	 * 
+	 * @param tabla Nombre de la tabla que queramos borrar
+	 * @throws SQLException
+	 */
+	public void borrarTablaCompleta(String tabla) throws SQLException {
+		String sql = "DELETE FROM " + tabla;
+		
+		iniciarTransaccion();
+		
+		Statement st = con.createStatement();
+		st.executeUpdate(sql);
+	}
+
+	/**
+	 * Funcion que borra por filtrado
+	 * 
+	 * @param tabla       Nombre de la tabla para borrar
+	 * @param campoFiltro Nombre del campo para filtrar
+	 * @param valorFiltro Valor por el cual filtrar
+	 * @throws SQLException
+	 */
+	public void borrarFiltrando(String tabla, String campoFiltro, String valorFiltro) throws SQLException {
+		
+		String sql = "DELETE FROM " + tabla + " WHERE " + campoFiltro + " = ?";
+		
+		iniciarTransaccion();
+		
+		PreparedStatement ps = con.prepareStatement(sql);
+		
+		ps.setString(1, valorFiltro);
+		ps.executeUpdate();
+	}
+
+	/**
+	 * Elimina todas las tablas
+	 * 
+	 * @throws SQLException
+	 */
+	public void eliminarTodasLasTablas() throws SQLException {
+		// Orden correcto: primero las dependientes
+		String[] tablas = { "Matricula", "Alumnado", "Profesores" };
+		
+		iniciarTransaccion();
+		
+		for (String t : tablas) {
+			Statement st = con.createStatement();
+			st.executeUpdate("DROP TABLE IF EXISTS " + t);
 		}
+	}
 
-		return modifico;
+	/**
+	 * Elimina una tabla en concreto
+	 * 
+	 * @param tabla
+	 * @throws SQLException
+	 */
+	public static void eliminarTabla(String tabla) throws SQLException {
+		
+		iniciarTransaccion();
+		
+		Statement st = con.createStatement();
+		st.executeUpdate("DROP TABLE IF EXISTS " + tabla);
+	}
 
+	// FUNCIONES PUBLICAS NECESARIAS
+
+	/**
+	 * Funcion que devuelve las tablas que hay
+	 * 
+	 * @return Devuelve un array con el nombre de las tablas
+	 */
+	public String[] getTablasSistema() {
+		return new String[] { "Matricula", "Alumnado", "Profesores" };
+	}
+
+	/**
+	 * Funcion que inicia la trasaccion
+	 * 
+	 * @throws SQLException
+	 */
+	public static void iniciarTransaccion() throws SQLException {
+		con.setAutoCommit(false);
+	}
+
+	/**
+	 * Funcion que confirma, hace un commit
+	 * 
+	 * @throws SQLException
+	 */
+	public static void confirmar() throws SQLException {
+		con.commit();
+		con.setAutoCommit(true);
+	}
+
+	/**
+	 * Funcion que cancela, hace un rollback
+	 * 
+	 * @throws SQLException
+	 */
+	public static void cancelar() throws SQLException {
+		con.rollback();
+		con.setAutoCommit(true);
 	}
 
 	// FUNCIONES PRIVADAS
 
+	/**
+	 * Funcion privada que devuelve la creacion de la tabla d Profesores
+	 * 
+	 * @return Devuleve un string con el codifgo de la creacion de la tabla
+	 */
 	private static String tablaProfes() {
 
-		String tablaProfes = "CREATE TABLE IF NOT EXISTS Profesores (" +
-                "idProfesor INT AUTO_INCREMENT PRIMARY KEY," +
-                "Nombre VARCHAR(45)," +
-                "Apellidos VARCHAR(45)," +
-                "FechaNacimiento DATE," +
-                "Antiguedad INT)";
+		String tablaProfes = "CREATE TABLE Profesores ( idProfesor INT AUTO_INCREMENT PRIMARY KEY, Nombre VARCHAR(45), Apellidos VARCHAR(45), FechaNacimiento DATE, Antiguedad INT);";
 		return tablaProfes;
 	}
 
+	/**
+	 * Funcion privada que devuelve la creacion de la tabla d Alumnado
+	 * 
+	 * @return Devuleve un string con el codifgo de la creacion de la tabla
+	 */
 	private static String tablaAlumnado() {
-		String tablaAlumnado = "CREATE TABLE IF NOT EXISTS Alumnado (" +
-                "idAlumno INT AUTO_INCREMENT PRIMARY KEY," +
-                "Nombre VARCHAR(45)," +
-                "Apellidos VARCHAR(45)," +
-                "FechaNacimiento DATE)";
+		String tablaAlumnado = "CREATE TABLE Alumnado ( idAlumno INT AUTO_INCREMENT PRIMARY KEY,"
+				+ "Nombre VARCHAR(45), Apellidos VARCHAR(45), FechaNacimiento DATE);";
 		return tablaAlumnado;
 	}
 
+	/**
+	 * Funcion privada que devuelve la creacion de la tabla d matricula
+	 * 
+	 * @return Devuleve un string con el codifgo de la creacion de la tabla
+	 */
 	private static String tablaMatricula() {
 
-		String tablaMatricula ="CREATE TABLE IF NOT EXISTS Matricula (" +
-                "idMatricula INT AUTO_INCREMENT PRIMARY KEY," +
-                "idProfesorado INT," +
-                "idAlumno INT," +
-                "Asignatura VARCHAR(45)," +
-                "Curso INT," +
-                "FOREIGN KEY(idProfesorado) REFERENCES Profesores(idProfesor)," +
-                "FOREIGN KEY(idAlumno) REFERENCES Alumnado(idAlumno))";
+		String tablaMatricula = "CREATE TABLE Matricula ( idMatricula INT AUTO_INCREMENT PRIMARY KEY,"
+				+ "idProfesorado INT, idAlumno INT, Asignatura VARCHAR(45), Curso INT, "
+				+ "FOREIGN KEY(idProfesorado) REFERENCES Profesores(idProfesor),"
+				+ "FOREIGN KEY(idAlumno) REFERENCES Alumnado(idAlumno));";
 		return tablaMatricula;
 
 	}
-	
-	private static void imprimirProfes(ResultSet rs) {
-	
-		
-		
-	}
-	
 
 }
