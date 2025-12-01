@@ -1,6 +1,7 @@
 package clases;
 
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Scanner;
 
 public class Main {
@@ -36,6 +37,14 @@ public class Main {
 		int opDrop;
 		int opList;
 		String filtrar;
+		String columnaFiltro;
+		int opFiltro;
+		int opModificar;
+		int tipo;
+		int opBorrar;
+
+		List<String> columnas;
+		List<String> tablas;
 
 		if (bd.conectar()) {
 
@@ -78,13 +87,13 @@ public class Main {
 						switch (opCrear) {
 						case 1:
 							// Crea tabla Profesores
-							bd.createTable("profesores");
+							bd.createTable("Profesores");
 						case 2:
 							// Crea tabla Alumnado
-							bd.createTable("alumnado");
+							bd.createTable("Alumnado");
 						case 3:
 							// Crea tabla Matricula
-							bd.createTable("matricula");
+							bd.createTable("Matricula");
 						case 4:
 							// Crea todas las tablas
 							bd.createTableTodas();
@@ -185,20 +194,36 @@ public class Main {
 
 						// Asigna el nombre de la tabla según la opción del usuario
 						switch (opList) {
-						case 1 -> tabla = "profesores";
-						case 2 -> tabla = "alumnado";
-						case 3 -> tabla = "matricula";
+						case 1 -> tabla = "Profesores";
+						case 2 -> tabla = "Alumnado";
+						case 3 -> tabla = "Matricula";
 						default -> System.out.println("Opción de tabla no válida.");
 						}
 
 						// Si la opción de tabla es válida
 						if (!tabla.equals("")) {
 							if (filtrar.equalsIgnoreCase("S")) {
-								// Si desea filtrar, solicita valor
+
+								System.out.println("¿Por qué columna quieres filtrar?");
+								columnas = bd.obtenerColumnas(tabla);
+
+								// Mostrar columnas
+								for (int i = 0; i < columnas.size(); i++) {
+									System.out.println((i + 1) + ". " + columnas.get(i));
+								}
+
+								System.out.print("Elige una columna: ");
+								int col = sc.nextInt();
+								sc.nextLine();
+
+								columnaFiltro = columnas.get(col - 1);
+
 								System.out.print("Introduce el valor por el que filtrar: ");
 								valorFiltro = sc.nextLine();
-								// Llama a listarWhere con el valor filtrado
-								bd.listarWhere(tabla, valorFiltro);
+
+								// Llamada correcta:
+								bd.listarWhere(tabla, columnaFiltro, valorFiltro);
+
 							} else {
 								// Llama a listar sin filtro
 								bd.listar(tabla);
@@ -210,98 +235,179 @@ public class Main {
 
 					// OPCIÓN 4 — MODIFICAR REGISTROS
 					case 4 -> {
-						// Lee tabla a modificar
-						System.out.print("Tabla donde modificar: ");
-						tabla = sc.nextLine();
 
-						// Lee campo de filtro
-						System.out.print("Campo por el que filtrar (ej: idProfesor): ");
-						campoFiltro = sc.nextLine();
+						// Obtener y mostrar tablas existentes
+						tablas = bd.obtenerTablas();
 
-						// Lee valor de filtro
-						System.out.print("Valor del filtro (ej: 8): ");
+						if (tablas == null || tablas.isEmpty()) {
+							System.out.println("No hay tablas disponibles en la base de datos.");
+							break;
+						}
+
+						System.out.println("\nTABLAS DISPONIBLES:");
+						for (int i = 0; i < tablas.size(); i++) {
+							System.out.println((i + 1) + ". " + tablas.get(i));
+						}
+
+						// Seleccionar tabla
+						System.out.print("\nElige el número de la tabla donde modificar: ");
+						int opTabla = sc.nextInt();
+						sc.nextLine();
+
+						tabla = tablas.get(opTabla - 1);
+
+						// Obtener columnas de la tabla seleccionada
+						columnas = bd.obtenerColumnas(tabla);
+
+						if (columnas == null || columnas.isEmpty()) {
+							System.out.println("No se pudieron obtener las columnas de la tabla.");
+							break;
+						}
+
+						System.out.println("\nCOLUMNAS DE " + tabla + ":");
+						for (int i = 0; i < columnas.size(); i++) {
+							System.out.println((i + 1) + ". " + columnas.get(i));
+						}
+
+						// Seleccionar campo de filtro
+						System.out.print("\nElige el número del campo por el que filtrar: ");
+						opFiltro = sc.nextInt();
+						sc.nextLine();
+
+						campoFiltro = columnas.get(opFiltro - 1);
+
+						// Valor del filtro
+						System.out.print("Valor del filtro: ");
 						valorFiltro = sc.nextLine();
 
-						// Campo que se modificará
-						System.out.print("Campo a modificar: ");
-						campoModificar = sc.nextLine();
+						// Seleccionar campo a modificar
+						System.out.print("\nElige el número del campo a modificar: ");
+						opModificar = sc.nextInt();
+						sc.nextLine();
 
-						// Nuevo valor para el campo
-						System.out.print("Nuevo valor: ");
+						campoModificar = columnas.get(opModificar - 1);
+
+						// Nuevo valor
+						System.out.print("Nuevo valor para '" + campoModificar + "': ");
 						nuevoValor = sc.nextLine();
 
-						// Ejecuta la modificación
+						// Ejecutar modificación
 						bd.modificar(tabla, campoFiltro, valorFiltro, campoModificar, nuevoValor);
 
-						// Solicita confirmación
+						// Confirmación
 						System.out.print("\n¿Confirmar cambios? (S/N): ");
 						String r = sc.nextLine();
 
-						// Confirmación con commit o rollback
 						if (r.equalsIgnoreCase("S")) {
 							bd.StartModificar(true);
+							System.out.println("Cambios confirmados.");
 						} else {
 							bd.StartModificar(false);
+							System.out.println("Cambios cancelados.");
 						}
 					}
 
 					// OPCIÓN 5 — BORRAR REGISTROS
 					case 5 -> {
-						System.out.println("¿Desea borrar?");
-						System.out.println("1. Todos los datos de todas las tablas");
-						System.out.println("2. Datos de una tabla concreta");
 
-						int opBorrar = sc.nextInt();
-						sc.nextLine();
+					    System.out.println("¿Desea borrar?");
+					    System.out.println("1. Todos los datos de todas las tablas");
+					    System.out.println("2. Datos de una tabla concreta");
 
-						try {
-							// Iniciar transacción
-							bd.iniciarTransaccion();
+					    opBorrar = sc.nextInt();
+					    sc.nextLine();  // limpiar buffer
 
-							if (opBorrar == 1) {
-								// Borrar todo siguiendo orden de claves
-								bd.borrarTablaCompleta("Matricula");
-								bd.borrarTablaCompleta("Alumnado");
-								bd.borrarTablaCompleta("Profesores");
-							} else if (opBorrar == 2) {
-								// Borrar de una sola tabla
-								System.out.print("Tabla: ");
-								tabla = sc.nextLine();
+					    try {
+					        // Iniciar transacción
+					        bd.iniciarTransaccion();
 
-								System.out.println("1. Borrar toda la tabla");
-								System.out.println("2. Borrar por filtro");
-								int tipo = sc.nextInt();
-								sc.nextLine();
+					        //  OPCIÓN 1 — BORRAR TODAS LAS TABLAS EN ORDEN SEGURO
+					        if (opBorrar == 1) {
 
-								if (tipo == 1) {
-									bd.borrarTablaCompleta(tabla);
-								} else {
-									System.out.print("Campo filtro: ");
-									campo = sc.nextLine();
+					            System.out.println("\nSe borrarán TODAS las tablas en orden seguro…");
 
-									System.out.print("Valor filtro: ");
-									valor = sc.nextLine();
+					            // Obtener todas las tablas 
+					            tablas= bd.obtenerTablas();
 
-									bd.borrarFiltrando(tabla, campo, valor);
-								}
-							}
+					        
+					            for (String t : tablas) {
+					                System.out.println("→ Borrando tabla: " + t);
+					                bd.borrarTablaCompleta(t);
+					            }
 
-							// Confirmación de borrado
-							System.out.print("¿Confirmar borrado? (S/N): ");
-							conf = sc.nextLine();
+					        } 
+					        
+					        //  OPCIÓN 2 — BORRAR UNA SOLA TABLA
+					        else if (opBorrar == 2) {
 
-							if (conf.equalsIgnoreCase("S")) {
-								bd.confirmar();
-								System.out.println("Cambios confirmados.");
-							} else {
-								bd.cancelar();
-								System.out.println("Cambios deshechos (rollback).");
-							}
+					            // Mostrar tablas disponibles
+					            tablas = bd.obtenerTablas();
 
-						} catch (SQLException e) {
-							// Si ocurre un error lo muestra
-							System.out.println("Error: " + e.getMessage());
-						}
+					            System.out.println("\nTABLAS DISPONIBLES:");
+					            for (int i = 0; i < tablas.size(); i++) {
+					                System.out.println((i + 1) + ". " + tablas.get(i));
+					            }
+
+					            // Seleccionar tabla
+					            System.out.print("\nSeleccione número de la tabla: ");
+					            int opTabla = sc.nextInt();
+					            sc.nextLine();
+
+					            tabla = tablas.get(opTabla - 1);
+
+					            System.out.println("\n1. Borrar TODA la tabla");
+					            System.out.println("2. Borrar usando un filtro");
+					            tipo = sc.nextInt();
+					            sc.nextLine();
+
+					            //  Opción 2.1 → BORRAR UNA TABLA COMPLETA
+					            if (tipo == 1) {
+					                System.out.println("→ Borrando tabla completa: " + tabla);
+					                bd.borrarTablaCompleta(tabla);
+					            } 
+
+					            //  Opción 2.2 → BORRAR POR FILTRO (con selección de columna)
+					            else {
+
+					                // Mostrar columnas disponibles
+					                columnas = bd.obtenerColumnas(tabla);
+
+					                System.out.println("\nCOLUMNAS DE " + tabla + ":");
+					                for (int i = 0; i < columnas.size(); i++) {
+					                    System.out.println((i + 1) + ". " + columnas.get(i));
+					                }
+
+					                // Seleccionar columna para filtrar
+					                System.out.print("\nSeleccione número del campo filtro: ");
+					                int opCampo = sc.nextInt();
+					                sc.nextLine();
+
+					                campo = columnas.get(opCampo - 1);
+
+					                // Valor del filtro
+					                System.out.print("Valor filtro: ");
+					                valor = sc.nextLine();
+
+					                System.out.println("\n→ Borrando registros donde " + campo + " = '" + valor + "'");
+					                bd.borrarFiltrando(tabla, campo, valor);
+					            }
+					        }
+
+					        // CONFIRMACIÓN FINAL
+					        System.out.print("\n¿Confirmar borrado? (S/N): ");
+					        conf = sc.nextLine();
+
+					        if (conf.equalsIgnoreCase("S")) {
+					            bd.confirmar();
+					            System.out.println("Cambios confirmados.");
+					        } else {
+					            bd.cancelar();
+					            System.out.println("Cambios deshechos (rollback).");
+					        }
+
+					    } catch (SQLException e) {
+					        System.out.println("Error: " + e.getMessage());
+					    }
 					}
 
 					// OPCIÓN 6 — ELIMINAR TABLAS (DROP TABLE)
@@ -363,7 +469,7 @@ public class Main {
 
 			sc.close();
 			// Cierra el Scanner al final del programa
-		}else {
+		} else {
 			System.out.println("No se pudo conectar con exito");
 		}
 	}

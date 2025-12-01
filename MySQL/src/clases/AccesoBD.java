@@ -7,6 +7,8 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 
 public class AccesoBD {
 
@@ -57,8 +59,6 @@ public class AccesoBD {
 		boolean crear = false;
 
 		String creacion = tablaProfes() + tablaAlumnado() + tablaMatricula();
-
-		iniciarTransaccion();
 
 		if (st.execute(creacion)) {
 			confirmar();
@@ -229,8 +229,6 @@ public class AccesoBD {
 
 		String sql = "SELECT * FROM " + tabla;
 		
-		iniciarTransaccion();
-		
 		Statement st = con.createStatement();
 		ResultSet rs = st.executeQuery(sql);
 
@@ -252,27 +250,29 @@ public class AccesoBD {
 	 * @param valor valor por el cual queramos filtrar
 	 * @throws SQLException
 	 */
-	public static void listarWhere(String tabla, String valor) throws SQLException {
+	public static void listarWhere(String tabla, String columna, String valor) throws SQLException {
 
-		String lista = "SELECT * FROM " + tabla + "WHERE " + "LIKE %" + valor + "%";
-		
-		iniciarTransaccion();
+	    String sql = "SELECT * FROM " + tabla + " WHERE " + columna + " LIKE ?";
 
-		PreparedStatement ps = con.prepareStatement(lista);
-		ps.setString(1, valor);
-		ResultSet rs = ps.executeQuery();
+	    try (PreparedStatement ps = con.prepareStatement(sql)) {
+	        ps.setString(1, "%" + valor + "%");
+	        try (ResultSet rs = ps.executeQuery()) {
 
-		ResultSetMetaData meta = rs.getMetaData();
-		int columnas = meta.getColumnCount();
+	            ResultSetMetaData meta = rs.getMetaData();
+	            int columnas = meta.getColumnCount();
 
-		while (rs.next()) {
-			for (int i = 1; i <= columnas; i++) {
-				System.out.print(meta.getColumnName(i) + ": " + rs.getString(i) + " | ");
-			}
-			System.out.println();
-		}
+	            while (rs.next()) {
+	                for (int i = 1; i <= columnas; i++) {
+	                    System.out.print(meta.getColumnName(i) + ": " + rs.getString(i) + " | ");
+	                }
+	                System.out.println();
+	            }
 
+	        }
+	    }
 	}
+
+
 
 	// MODIFICAR
 
@@ -352,12 +352,14 @@ public class AccesoBD {
 	 * @throws SQLException
 	 */
 	public void borrarTablaCompleta(String tabla) throws SQLException {
-		String sql = "DELETE FROM " + tabla;
-		
-		iniciarTransaccion();
-		
-		Statement st = con.createStatement();
-		st.executeUpdate(sql);
+
+
+	    String sql = "DELETE FROM " + tabla;
+
+	    try (Statement st = con.createStatement()) {
+	        int filas = st.executeUpdate(sql);
+	        System.out.println("→ Registros eliminados en " + tabla + ": " + filas);
+	    }
 	}
 
 	/**
@@ -369,15 +371,15 @@ public class AccesoBD {
 	 * @throws SQLException
 	 */
 	public void borrarFiltrando(String tabla, String campoFiltro, String valorFiltro) throws SQLException {
-		
-		String sql = "DELETE FROM " + tabla + " WHERE " + campoFiltro + " = ?";
-		
-		iniciarTransaccion();
-		
-		PreparedStatement ps = con.prepareStatement(sql);
-		
-		ps.setString(1, valorFiltro);
-		ps.executeUpdate();
+
+	    String sql = "DELETE FROM " + tabla + " WHERE " + campoFiltro + " = ?";
+
+	    try (PreparedStatement ps = con.prepareStatement(sql)) {
+	        ps.setString(1, valorFiltro);
+
+	        int filas = ps.executeUpdate();
+	        System.out.println("→ Registros eliminados donde " + campoFiltro + " = '" + valorFiltro + "': " + filas);
+	    }
 	}
 
 	/**
@@ -485,9 +487,53 @@ public class AccesoBD {
 		String tablaMatricula = "CREATE TABLE Matricula ( idMatricula INT AUTO_INCREMENT PRIMARY KEY,"
 				+ "idProfesorado INT, idAlumno INT, Asignatura VARCHAR(45), Curso INT, "
 				+ "FOREIGN KEY(idProfesorado) REFERENCES Profesores(idProfesor),"
-				+ "FOREIGN KEY(idAlumno) REFERENCES Alumnado(idAlumno));";
+				+ "FOREIGN KEY(idAlumno) REFERENCES Alumnado(idAlumno)) "
+				+ "ON DELETE CASCADE;";
 		return tablaMatricula;
 
 	}
+	
+	/**
+	 * Optiente las columnas existentes 
+	 * @param tabla nombre de la tabla
+	 * @return devuelve una lista con todas las columnas de la tabla
+	 * @throws SQLException
+	 */
+	public static List<String> obtenerColumnas(String tabla) throws SQLException {
+	    String sql = "SELECT * FROM " + tabla + " LIMIT 1";
+	    PreparedStatement ps = con.prepareStatement(sql);
+	    ResultSet rs = ps.executeQuery();
+
+	    ResultSetMetaData meta = rs.getMetaData();
+	    int columnas = meta.getColumnCount();
+
+	    List<String> lista = new ArrayList<>();
+
+	    for (int i = 1; i <= columnas; i++) {
+	        lista.add(meta.getColumnName(i));
+	    }
+
+	    return lista;
+	}
+	
+	/**
+	 * Obtiene la lista de todas la tablas que existen en la base de datos
+	 * @return devuelve todos los nombres de las tablas 
+	 * @throws SQLException
+	 */
+	public static List<String> obtenerTablas() throws SQLException {
+	    List<String> tablas = new ArrayList<>();
+
+	    DatabaseMetaData meta = con.getMetaData();
+	    ResultSet rs = meta.getTables(null, null, "%", new String[]{"TABLE"});
+
+	    while (rs.next()) {
+	        tablas.add(rs.getString("TABLE_NAME"));
+	    }
+
+	    return tablas;
+	}
+
+
 
 }
