@@ -62,13 +62,14 @@ public class Main {
 				System.out.println("0. Salir");
 				System.out.print("Opción: ");
 
-				opcion = sc.nextInt();
 				// Lee la opción seleccionada por el usuario
-				sc.nextLine();
+				opcion = sc.nextInt();
+				
 				// Limpia el buffer
-
+				sc.nextLine();
+				
 				try {
-					// Estructura switch con sintaxis "->"
+					
 					switch (opcion) {
 
 					// OPCIÓN 1 — CREACIÓN DE TABLAS

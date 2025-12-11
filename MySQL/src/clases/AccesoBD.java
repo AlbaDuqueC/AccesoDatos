@@ -56,18 +56,26 @@ public class AccesoBD {
 	 */
 	public static boolean createTableTodas() throws SQLException {
 
-		boolean crear = false;
+	    boolean crear = true;
+	    String creacion = tablaProfes() + " " + tablaAlumnado() + " " + tablaMatricula();
 
-		String creacion = tablaProfes() + tablaAlumnado() + tablaMatricula();
+	    // Separa las sentencias por ;
+	    String[] sentencias = creacion.split(";");
 
-		if (st.execute(creacion)) {
-			confirmar();
-			crear = true;
-		}
+	    iniciarTransaccion();
 
-		return crear;
+	    for (String sql : sentencias) {
+	        sql = sql.trim();
+	        if (!sql.isEmpty()) {
+	            st.executeUpdate(sql);
+	        }
+	    }
 
+	    confirmar();
+	    return crear;
 	}
+
+	
 
 	/**
 	 * Crea solo la tabla que introduzcas por parametro
@@ -105,8 +113,7 @@ public class AccesoBD {
 		}
 		case "matricula" -> {
 
-			ResultSet rta = st.executeQuery("SELECT * FROM Alumnado");
-			ResultSet rtp = st.executeQuery("SELECT * FROM Profesores");
+			
 
 			if (!st.execute(tablaMatricula())) {
 				crear = -1;
@@ -378,7 +385,7 @@ public class AccesoBD {
 	        ps.setString(1, valorFiltro);
 
 	        int filas = ps.executeUpdate();
-	        System.out.println("→ Registros eliminados donde " + campoFiltro + " = '" + valorFiltro + "': " + filas);
+	        System.out.println("Registros eliminados donde " + campoFiltro + " = '" + valorFiltro + "': " + filas);
 	    }
 	}
 
@@ -462,7 +469,7 @@ public class AccesoBD {
 	 */
 	private static String tablaProfes() {
 
-		String tablaProfes = "CREATE TABLE Profesores ( idProfesor INT AUTO_INCREMENT PRIMARY KEY, Nombre VARCHAR(45), Apellidos VARCHAR(45), FechaNacimiento DATE, Antiguedad INT);";
+		String tablaProfes = " CREATE TABLE Profesores ( idProfesor INT AUTO_INCREMENT PRIMARY KEY, Nombre VARCHAR(45), Apellidos VARCHAR(45), FechaNacimiento DATE, Antiguedad INT);";
 		return tablaProfes;
 	}
 
@@ -472,7 +479,7 @@ public class AccesoBD {
 	 * @return Devuleve un string con el codifgo de la creacion de la tabla
 	 */
 	private static String tablaAlumnado() {
-		String tablaAlumnado = "CREATE TABLE Alumnado ( idAlumno INT AUTO_INCREMENT PRIMARY KEY,"
+		String tablaAlumnado = " CREATE TABLE Alumnado ( idAlumno INT AUTO_INCREMENT PRIMARY KEY,"
 				+ "Nombre VARCHAR(45), Apellidos VARCHAR(45), FechaNacimiento DATE);";
 		return tablaAlumnado;
 	}
@@ -487,10 +494,19 @@ public class AccesoBD {
 		String tablaMatricula = "CREATE TABLE Matricula ( idMatricula INT AUTO_INCREMENT PRIMARY KEY,"
 				+ "idProfesorado INT, idAlumno INT, Asignatura VARCHAR(45), Curso INT, "
 				+ "FOREIGN KEY(idProfesorado) REFERENCES Profesores(idProfesor),"
-				+ "FOREIGN KEY(idAlumno) REFERENCES Alumnado(idAlumno)) "
-				+ "ON DELETE CASCADE;";
+				+ "FOREIGN KEY(idAlumno) REFERENCES Alumnado(idAlumno)) ";
 		return tablaMatricula;
 
+	}
+	
+	private static String tablaProfesDrop() {
+	    return "DROP TABLE IF EXISTS Profesores;";
+	}
+	private static String tablaAlumnadoDrop() {
+	    return "DROP TABLE IF EXISTS Alumnado;";
+	}
+	private static String tablaMatriculaDrop() {
+	    return "DROP TABLE IF EXISTS Matricula;";
 	}
 	
 	/**
