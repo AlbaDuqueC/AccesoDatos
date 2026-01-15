@@ -1,43 +1,38 @@
-package entities;
+package com.escolar.entidades;
 
+import javax.persistence.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.OneToMany;
-import javax.persistence.Table;
-
 @Entity
-@Table(name = "Profesores")
+@Table(name = "profesores")
 public class Profesor {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "idProfesor")
+    @Column(name = "id_profesor")
     private Integer idProfesor;
     
-    @Column(name = "Nombre", length = 45)
+    @Column(name = "nombre", nullable = false, length = 45)
     private String nombre;
     
-    @Column(name = "Apellidos", length = 45)
+    @Column(name = "apellidos", nullable = false, length = 45)
     private String apellidos;
     
-    @Column(name = "FechaNacimiento")
+    @Column(name = "fecha_nacimiento")
     private LocalDate fechaNacimiento;
     
-    @Column(name = "Antiguedad")
+    @Column(name = "antiguedad")
     private Integer antiguedad;
     
+    // Relación uno a muchos con Matricula
     @OneToMany(mappedBy = "profesor", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Matricula> matriculas = new ArrayList<>();
     
-    public Profesor() {}
+    // Constructores
+    public Profesor() {
+    }
     
     public Profesor(String nombre, String apellidos, LocalDate fechaNacimiento, Integer antiguedad) {
         this.nombre = nombre;
@@ -95,9 +90,25 @@ public class Profesor {
         this.matriculas = matriculas;
     }
     
+    // Métodos auxiliares para gestionar relaciones
+    public void addMatricula(Matricula matricula) {
+        matriculas.add(matricula);
+        matricula.setProfesor(this);
+    }
+    
+    public void removeMatricula(Matricula matricula) {
+        matriculas.remove(matricula);
+        matricula.setProfesor(null);
+    }
+    
     @Override
     public String toString() {
-        return "ID: " + idProfesor + " | Nombre: " + nombre + " | Apellidos: " + apellidos + 
-               " | FechaNacimiento: " + fechaNacimiento + " | Antiguedad: " + antiguedad;
+        return "Profesor{" +
+                "idProfesor=" + idProfesor +
+                ", nombre='" + nombre + '\'' +
+                ", apellidos='" + apellidos + '\'' +
+                ", fechaNacimiento=" + fechaNacimiento +
+                ", antiguedad=" + antiguedad +
+                '}';
     }
 }
